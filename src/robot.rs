@@ -79,14 +79,10 @@ impl Robot {
             }
         };
 
-        match world.get_tile((self.x.into(), self.y.into())) {
-            Some(tile) => match tile {
-                crate::world::Tile::Empty => Ok(()),
-                crate::world::Tile::Wall => {
-                    Err(RobotError::InvalidMove(self.x.into(), self.y.into()))
-                }
-            },
-            None => Err(RobotError::InvalidMove(self.x.into(), self.y.into())),
+        match world.get_tile((self.x, self.y)) {
+            crate::world::Tile::Empty => Ok(()),
+            crate::world::Tile::Wall => Err(RobotError::InvalidMove(self.x.into(), self.y.into())),
+            crate::world::Tile::Exit => Ok(()),
         }
     }
 
@@ -108,20 +104,24 @@ impl Robot {
         }
     }
 
-    pub fn scan(&mut self, world: &World) -> bool {
-        let forward_position: (i16, i16) = match self.facing {
-            Direction::Left => (self.x as i16 - 1, self.y as i16),
-            Direction::Right => (self.x as i16 + 1, self.y as i16),
-            Direction::Up => (self.x as i16, self.y as i16 + 1),
-            Direction::Down => (self.x as i16, self.y as i16 - 1),
-        };
-
-        match world.get_tile(forward_position) {
-            Some(tile) => match tile {
-                crate::world::Tile::Empty => false,
-                crate::world::Tile::Wall => true,
-            },
-            None => true,
+    pub fn get_forward_position(&self) -> (u8, u8) {
+        match self.facing {
+            Direction::Left => (self.x - 1, self.y),
+            Direction::Right => (self.x + 1, self.y),
+            Direction::Up => (self.x, self.y - 1),
+            Direction::Down => (self.x, self.y + 1),
         }
+    }
+
+    pub fn scan(&mut self, world: &World) -> bool {
+        match world.get_tile(self.get_forward_position()) {
+            crate::world::Tile::Empty => false,
+            crate::world::Tile::Exit => false,
+            crate::world::Tile::Wall => true,
+        }
+    }
+
+    pub fn is_on_end_tile(&self, world: &World) -> bool {
+        self.x == world.exit_position.0 && self.y == world.exit_position.1
     }
 }
