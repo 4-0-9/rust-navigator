@@ -2,12 +2,14 @@ use ffi::Vector2;
 use raylib::prelude::*;
 
 use interface::instructions::initialize_globals;
+use std::collections::HashMap;
 use std::{fs, sync::mpsc::channel};
 
 use mlua::Function;
 use std::thread;
 
 use crate::robot::{Direction, Robot, RobotCommand};
+use crate::textures::load_textures;
 use crate::world::World;
 use crate::{interface, robot};
 
@@ -81,8 +83,7 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
                 Err(_e) => (),
             };
 
-            if robot.is_on_end_tile(&simulation_world)
-            {
+            if robot.is_on_end_tile(&simulation_world) {
                 break;
             }
         }
@@ -103,6 +104,8 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
         .title("Rust Navigator")
         .build();
 
+    let textures = load_textures(&mut rl, &thread);
+
     let mut tick: u8 = 0;
     let mut command_index = 0;
     let mut paused = true;
@@ -120,6 +123,7 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
 
         if !paused {
             tick = (tick + 1) % 30;
+
             if !playback_ended && commands.len() > command_index && tick == 0 {
                 current_command = commands[command_index];
                 match current_command {
@@ -134,38 +138,17 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
                     RobotCommand::Scan => (),
                     RobotCommand::End => playback_ended = true,
                 };
+
                 command_index += 1;
 
-                if robot.is_on_end_tile(&world)
-                {
+                if robot.is_on_end_tile(&world) {
                     playback_ended = true;
                 }
             }
         }
 
-        draw_world(&mut d, &world);
-        match current_command {
-            RobotCommand::Scan => {
-                let forward_position = robot.get_forward_position();
-                let centered_robot_position = tile_to_screen_pos_centered(robot.x, robot.y);
-                let screen_position =
-                    tile_to_screen_pos_centered(forward_position.0, forward_position.1);
-                d.draw_line_ex(
-                    Vector2 {
-                        x: centered_robot_position.0 as f32,
-                        y: centered_robot_position.1 as f32,
-                    },
-                    Vector2 {
-                        x: screen_position.0 as f32,
-                        y: screen_position.1 as f32,
-                    },
-                    4.0,
-                    Color::GREEN,
-                );
-            }
-            _ => (),
-        }
-        draw_robot(&mut d, &robot);
+        draw_world(&mut d, &world, &textures);
+        draw_robot(&mut d, &robot, &textures);
 
         if playback_ended {
             d.draw_text("[Escape] End", 4, 4, 24, Color::WHITE);
@@ -189,47 +172,55 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn draw_world(d: &mut RaylibDrawHandle, world: &World) {
+fn draw_world(d: &mut RaylibDrawHandle, world: &World, textures: &HashMap<String, Texture2D>) {
     for y in 0..world.height {
         for x in 0..world.width {
             let screen_pos = tile_to_screen_pos(x, y);
 
             match world.get_tile((x, y)) {
-                crate::world::Tile::Empty => d.draw_rectangle(
+                crate::world::Tile::Ground => d.draw_texture(
+                    textures.get("ground").unwrap(),
                     screen_pos.0,
                     screen_pos.1,
-                    CELL_SIZE as i32,
-                    CELL_SIZE as i32,
                     Color::WHITE,
                 ),
-                crate::world::Tile::Exit => d.draw_rectangle(
+                crate::world::Tile::Exit => d.draw_texture(
+                    textures.get("exit").unwrap(),
                     screen_pos.0,
                     screen_pos.1,
-                    CELL_SIZE as i32,
-                    CELL_SIZE as i32,
-                    Color::PURPLE,
+                    Color::WHITE,
                 ),
-                crate::world::Tile::Wall => d.draw_rectangle(
+                crate::world::Tile::Wall => d.draw_texture(
+                    textures.get("wall").unwrap(),
                     screen_pos.0,
                     screen_pos.1,
-                    CELL_SIZE as i32,
-                    CELL_SIZE as i32,
-                    Color::BLACK,
+                    Color::WHITE,
                 ),
             }
         }
     }
 }
 
-// TODO: Show the robot's direction
-fn draw_robot(d: &mut RaylibDrawHandle, robot: &Robot) {
-    let screen_pos = tile_to_screen_pos_centered(robot.x, robot.y);
+fn draw_robot(d: &mut RaylibDrawHandle, robot: &Robot, textures: &HashMap<String, Texture2D>) {
+    let center_pos = tile_to_screen_pos_centered(robot.x, robot.y);
 
-    d.draw_circle(
-        screen_pos.0,
-        screen_pos.1,
-        CELL_SIZE as f32 / 2.0,
-        Color::RED,
+    d.draw_texture_pro(
+        textures.get("rover").unwrap(),
+        Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 32.0,
+            height: 32.0,
+        },
+        Rectangle {
+            x: center_pos.0 as f32,
+            y: center_pos.1 as f32,
+            width: 32.0,
+            height: 32.0,
+        },
+        Vector2 { x: 16.0, y: 16.0 },
+        robot.get_draw_rotation(),
+        Color::WHITE,
     );
 }
 

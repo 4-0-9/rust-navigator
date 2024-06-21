@@ -1,8 +1,22 @@
+pub trait WorldTile {
+    fn collision(&self) -> bool;
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Tile {
-    Empty,
+    Ground,
     Exit,
     Wall,
+}
+
+impl WorldTile for Tile {
+    fn collision(&self) -> bool {
+        match self {
+            Tile::Ground => false,
+            Tile::Exit => false,
+            Tile::Wall => true,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -18,7 +32,7 @@ pub struct World {
 // TODO: Make the world include the border instead of this -1 / width / height shit
 impl World {
     pub fn new(resolution: (u8, u8), exit_position: (u8, u8)) -> Self {
-        let tiles = vec![Tile::Empty; resolution.0 as usize * resolution.1 as usize];
+        let tiles = vec![Tile::Ground; resolution.0 as usize * resolution.1 as usize];
 
         let mut world = Self {
             width: resolution.0,

@@ -1,4 +1,4 @@
-use crate::world::World;
+use crate::world::{World, WorldTile};
 
 #[derive(Debug, Copy, Clone)]
 pub enum RobotCommand {
@@ -26,7 +26,7 @@ pub enum Direction {
 
 #[derive(Debug)]
 pub enum RobotError {
-    InvalidMove(i16, i16),
+    InvalidMove(u8, u8),
 }
 
 type Result<T> = std::result::Result<T, RobotError>;
@@ -48,42 +48,19 @@ impl Robot {
     }
 
     pub fn forward(&mut self, world: &World) -> Result<()> {
-        match &self.facing {
-            Direction::Left => {
-                if self.x == 0 {
-                    return Err(RobotError::InvalidMove(-1, self.y.into()));
-                }
+        let forward_position = self.get_forward_position();
 
-                self.x -= 1;
-            }
-            Direction::Right => {
-                if self.x == world.width - 1 {
-                    return Err(RobotError::InvalidMove(world.width.into(), self.y.into()));
-                }
-
-                self.x += 1;
-            }
-            Direction::Up => {
-                if self.y == 0 {
-                    return Err(RobotError::InvalidMove(self.x.into(), -1));
-                }
-
-                self.y -= 1;
-            }
-            Direction::Down => {
-                if self.y == world.height - 1 {
-                    return Err(RobotError::InvalidMove(self.x.into(), world.height.into()));
-                }
-
-                self.y += 1;
-            }
-        };
-
-        match world.get_tile((self.x, self.y)) {
-            crate::world::Tile::Empty => Ok(()),
-            crate::world::Tile::Wall => Err(RobotError::InvalidMove(self.x.into(), self.y.into())),
-            crate::world::Tile::Exit => Ok(()),
+        if world.get_tile(forward_position).collision() {
+            return Err(RobotError::InvalidMove(
+                forward_position.0,
+                forward_position.1,
+            ));
         }
+
+        self.x = forward_position.0;
+        self.y = forward_position.1;
+
+        Ok(())
     }
 
     pub fn left(&mut self) {
@@ -114,14 +91,19 @@ impl Robot {
     }
 
     pub fn scan(&mut self, world: &World) -> bool {
-        match world.get_tile(self.get_forward_position()) {
-            crate::world::Tile::Empty => false,
-            crate::world::Tile::Exit => false,
-            crate::world::Tile::Wall => true,
-        }
+        world.get_tile(self.get_forward_position()).collision()
     }
 
     pub fn is_on_end_tile(&self, world: &World) -> bool {
         self.x == world.exit_position.0 && self.y == world.exit_position.1
+    }
+    
+    pub fn get_draw_rotation(&self) -> f32 {
+        match self.facing {
+            Direction::Left => 180.0,
+            Direction::Right => 0.0,
+            Direction::Up => 270.0,
+            Direction::Down => 90.0,
+        }
     }
 }
