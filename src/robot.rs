@@ -1,4 +1,8 @@
-use crate::world::{World, WorldTile};
+use crate::{
+    rendering::Drawable,
+    world::{World, WorldTile},
+};
+use raylib::prelude::*;
 
 #[derive(Debug, Copy, Clone)]
 pub enum RobotCommand {
@@ -97,7 +101,7 @@ impl Robot {
     pub fn is_on_end_tile(&self, world: &World) -> bool {
         self.x == world.exit_position.0 && self.y == world.exit_position.1
     }
-    
+
     pub fn get_draw_rotation(&self) -> f32 {
         match self.facing {
             Direction::Left => 180.0,
@@ -105,5 +109,33 @@ impl Robot {
             Direction::Up => 270.0,
             Direction::Down => 90.0,
         }
+    }
+}
+
+impl Drawable for Robot {
+    fn draw(
+        &self,
+        position: (i32, i32),
+        d: &mut raylib::prelude::RaylibDrawHandle,
+        textures: &std::collections::HashMap<String, raylib::prelude::Texture2D>,
+    ) {
+        d.draw_texture_pro(
+            textures.get("rover").unwrap(),
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: 32.0,
+                height: 32.0,
+            },
+            Rectangle {
+                x: position.0 as f32,
+                y: position.1 as f32,
+                width: 32.0,
+                height: 32.0,
+            },
+            Vector2 { x: 16.0, y: 16.0 },
+            self.get_draw_rotation(),
+            Color::WHITE,
+        );
     }
 }

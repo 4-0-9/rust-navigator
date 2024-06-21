@@ -1,3 +1,9 @@
+use raylib::prelude::*;
+
+use std::collections::HashMap;
+
+use crate::{app::tile_to_screen_pos, rendering::Drawable};
+
 pub trait WorldTile {
     fn collision(&self) -> bool;
 }
@@ -16,6 +22,26 @@ impl WorldTile for Tile {
             Tile::Exit => false,
             Tile::Wall => true,
         }
+    }
+}
+
+impl Drawable for Tile {
+    fn draw(
+        &self,
+        position: (i32, i32),
+        d: &mut RaylibDrawHandle,
+        textures: &HashMap<String, Texture2D>,
+    ) {
+        d.draw_texture(
+            match self {
+                Tile::Ground => textures.get("ground").unwrap(),
+                Tile::Exit => textures.get("exit").unwrap(),
+                Tile::Wall => textures.get("wall").unwrap(),
+            },
+            position.0,
+            position.1,
+            Color::WHITE,
+        );
     }
 }
 
@@ -53,7 +79,10 @@ impl World {
     }
 
     pub fn set_tile(&mut self, position: (u8, u8), tile: Tile) {
-        if self.lock_exit_tile && position.0 == self.exit_position.0 && position.1 == self.exit_position.1 {
+        if self.lock_exit_tile
+            && position.0 == self.exit_position.0
+            && position.1 == self.exit_position.1
+        {
             return;
         }
 
@@ -68,35 +97,14 @@ impl World {
     }
 }
 
-pub struct WorldIntoIterator {
-    world: World,
-    index: usize,
-}
+impl Drawable for World {
+    fn draw(&self, _position: (i32, i32), d: &mut RaylibDrawHandle, textures: &HashMap<String, Texture2D>) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let screen_pos = tile_to_screen_pos(x, y);
 
-impl IntoIterator for World {
-    type Item = Tile;
-    type IntoIter = WorldIntoIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        WorldIntoIterator {
-            world: self,
-            index: 0,
+                self.get_tile((x, y)).draw(screen_pos, d, textures);
+            }
         }
-    }
-}
-
-impl Iterator for WorldIntoIterator {
-    type Item = Tile;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = if self.index < self.world.tiles.len() {
-            Some(self.world.tiles[self.index])
-        } else {
-            None
-        };
-
-        self.index += 1;
-
-        result
     }
 }
