@@ -39,6 +39,7 @@ type Result<T> = std::result::Result<T, RobotError>;
 pub struct Robot {
     pub x: u8,
     pub y: u8,
+    pub scanning: bool,
     facing: Direction,
 }
 
@@ -47,6 +48,7 @@ impl Robot {
         Self {
             x,
             y,
+            scanning: false,
             facing: orientation,
         }
     }
@@ -135,7 +137,10 @@ impl Drawable for Robot {
             },
             Vector2 { x: 16.0, y: 16.0 },
             self.get_draw_rotation(),
-            Color::WHITE,
+            match self.scanning {
+                true => Color::REBECCAPURPLE,
+                false => Color::WHITE,
+            },
         );
     }
 }

@@ -1,8 +1,6 @@
-use ffi::Vector2;
 use raylib::prelude::*;
 
 use interface::instructions::initialize_globals;
-use std::collections::HashMap;
 use std::{fs, sync::mpsc::channel};
 
 use mlua::Function;
@@ -125,6 +123,7 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
             tick = (tick + 1) % 30;
 
             if !playback_ended && commands.len() > command_index && tick == 0 {
+                robot.scanning = false;
                 match commands[command_index] {
                     RobotCommand::Forward => match robot.forward(&world) {
                         Ok(()) => (),
@@ -134,7 +133,7 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
                     },
                     RobotCommand::Left => robot.left(),
                     RobotCommand::Right => robot.right(),
-                    RobotCommand::Scan => (),
+                    RobotCommand::Scan => robot.scanning = true,
                     RobotCommand::End => playback_ended = true,
                 };
 
