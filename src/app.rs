@@ -104,7 +104,7 @@ pub fn run_app() -> Result<(), Box<dyn std::error::Error>> {
         d.clear_background(Color::BLACK);
 
         if !paused {
-            tick = (tick + 1) % 60;
+            tick = (tick + 1) % 30;
             if !playback_ended && commands.len() > command_index && tick == 0 {
                 match commands[command_index] {
                     RobotCommand::Forward => match robot.forward(&world) {
