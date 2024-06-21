@@ -1,10 +1,14 @@
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 
 use mlua::Lua;
 
-use crate::robot::RobotCommand;
+use crate::robot::{RobotCommand, RobotResponse};
 
-pub fn initialize_globals(lua: &Lua, tx: Sender<RobotCommand>) -> Result<(), mlua::Error> {
+pub fn initialize_globals(
+    lua: &Lua,
+    tx_commands: Sender<RobotCommand>,
+    rx: Receiver<RobotResponse>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let globals = lua.globals();
 
     globals.set(
@@ -12,9 +16,10 @@ pub fn initialize_globals(lua: &Lua, tx: Sender<RobotCommand>) -> Result<(), mlu
         mlua::Value::Function(lua.create_function(|_, _v: String| Ok(())).unwrap()),
     )?;
 
-    let forward_tx = tx.clone();
-    let left_tx = tx.clone();
-    let right_tx = tx.clone();
+    let forward_tx = tx_commands.clone();
+    let left_tx = tx_commands.clone();
+    let right_tx = tx_commands.clone();
+    let scan_tx = tx_commands.clone();
 
     globals.set(
         "forward",
@@ -40,6 +45,20 @@ pub fn initialize_globals(lua: &Lua, tx: Sender<RobotCommand>) -> Result<(), mlu
             right_tx.send(RobotCommand::Right).unwrap();
 
             Ok(())
+        })?),
+    )?;
+
+    globals.set(
+        "scan",
+        mlua::Value::Function(lua.create_function(move |_, _: ()| {
+            scan_tx.send(RobotCommand::Scan).unwrap();
+
+            match rx.recv() {
+                Ok(response) => match response {
+                    RobotResponse::Scan(state) => Ok(state),
+                },
+                Err(_) => panic!("Error scanning"),
+            }
         })?),
     )?;
 

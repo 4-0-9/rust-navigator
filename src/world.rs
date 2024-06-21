@@ -1,20 +1,10 @@
-use std::fmt::Display;
-
 #[derive(Clone, Copy, Debug)]
 pub enum Tile {
     Empty,
     Wall,
 }
 
-impl Display for Tile {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::Empty => "  ",
-            Self::Wall => "🧱",
-        })
-    }
-}
-
+#[derive(Clone)]
 pub struct World {
     pub width: u8,
     #[allow(dead_code)]
@@ -23,6 +13,7 @@ pub struct World {
     tiles: Vec<Tile>,
 }
 
+// TODO: Make the world include the border instead of this -1 / width / height shit
 impl World {
     pub fn new(resolution: (u8, u8), exit_position: (i16, i16)) -> Self {
         let tiles = vec![Tile::Empty; resolution.0 as usize * resolution.1 as usize];
@@ -35,18 +26,28 @@ impl World {
         }
     }
 
-    fn get_tile_index(&self, position: (u8, u8)) -> usize {
-        (position.1 * self.width + position.0).into()
+    fn get_tile_index(&self, position: (i16, i16)) -> Option<usize> {
+        if position.0 < 0
+            || position.0 >= self.width.into()
+            || position.1 < 0
+            || position.1 >= self.height.into()
+        {
+            return None;
+        }
+
+        Some((position.1 * self.width as i16 + position.0) as usize)
     }
 
-    pub fn set_tile(&mut self, position: (u8, u8), tile: Tile) {
-        let index = self.get_tile_index(position);
+    pub fn set_tile(&mut self, position: (i16, i16), tile: Tile) {
+        let index = self.get_tile_index(position).unwrap();
         self.tiles[index] = tile;
     }
 
-    pub fn get_tile(&self, position: (u8, u8)) -> Option<Tile> {
-        let index = self.get_tile_index(position);
-        self.tiles.get(index).copied()
+    pub fn get_tile(&self, position: (i16, i16)) -> Option<Tile> {
+        match self.get_tile_index(position) {
+            Some(index) => self.tiles.get(index).copied(),
+            None => None,
+        }
     }
 }
 

@@ -1,8 +1,6 @@
-use std::fmt::Display;
-
 use crate::world::World;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum RobotCommand {
     /// This command is sent by the program to tell the command receiver thread to shut down
     End,
@@ -10,8 +8,15 @@ pub enum RobotCommand {
     Forward,
     Left,
     Right,
+    Scan,
 }
 
+#[derive(Debug)]
+pub enum RobotResponse {
+    Scan(bool),
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum Direction {
     Left,
     Right,
@@ -26,21 +31,11 @@ pub enum RobotError {
 
 type Result<T> = std::result::Result<T, RobotError>;
 
+#[derive(Clone, Copy)]
 pub struct Robot {
     pub x: u8,
     pub y: u8,
     facing: Direction,
-}
-
-impl Display for Robot {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self.facing {
-            Direction::Left => "◀ ",
-            Direction::Right => "▶ ",
-            Direction::Up => "▲ ",
-            Direction::Down => "▼ ",
-        })
-    }
 }
 
 impl Robot {
@@ -84,7 +79,7 @@ impl Robot {
             }
         };
 
-        match world.get_tile((self.x, self.y)) {
+        match world.get_tile((self.x.into(), self.y.into())) {
             Some(tile) => match tile {
                 crate::world::Tile::Empty => Ok(()),
                 crate::world::Tile::Wall => {
@@ -110,6 +105,23 @@ impl Robot {
             Direction::Right => Direction::Down,
             Direction::Up => Direction::Right,
             Direction::Down => Direction::Left,
+        }
+    }
+
+    pub fn scan(&mut self, world: &World) -> bool {
+        let forward_position: (i16, i16) = match self.facing {
+            Direction::Left => (self.x as i16 - 1, self.y as i16),
+            Direction::Right => (self.x as i16 + 1, self.y as i16),
+            Direction::Up => (self.x as i16, self.y as i16 + 1),
+            Direction::Down => (self.x as i16, self.y as i16 - 1),
+        };
+
+        match world.get_tile(forward_position) {
+            Some(tile) => match tile {
+                crate::world::Tile::Empty => false,
+                crate::world::Tile::Wall => true,
+            },
+            None => true,
         }
     }
 }
