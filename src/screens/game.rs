@@ -1,4 +1,4 @@
-use std::{fs, sync::mpsc::channel, thread};
+use std::{collections::HashMap, fs, sync::mpsc::channel, thread};
 
 use mlua::Function;
 use raylib::prelude::*;
@@ -11,10 +11,9 @@ use crate::{
     world::World,
 };
 
-use super::{Screen, ScreenData};
+use super::Screen;
 
-pub struct GameScreen<'a> {
-    data: Option<ScreenData<'a>>,
+pub struct GameScreen {
     paused: bool,
     playback_ended: bool,
     tick: u8,
@@ -24,8 +23,8 @@ pub struct GameScreen<'a> {
     command_index: usize,
 }
 
-impl<'a> GameScreen<'a> {
-    pub fn new(world: World, mut robot: Robot, file_path: &str) -> GameScreen<'a> {
+impl GameScreen {
+    pub fn new(world: World, mut robot: Robot, file_path: &str) -> GameScreen {
         let (tx_globals, rx_globals) = channel::<RobotCommand>();
         let (tx_response, rx_response) = channel();
 
@@ -88,7 +87,6 @@ impl<'a> GameScreen<'a> {
         let commands = simulation_handle.join().unwrap();
 
         Self {
-            data: None,
             paused: true,
             playback_ended: false,
             command_index: 0,
@@ -99,19 +97,15 @@ impl<'a> GameScreen<'a> {
         }
     }
 }
-impl<'a> Screen<'a> for GameScreen<'a> {
-    fn initialize(&mut self, data: ScreenData<'a>) {
-        self.data = Some(data);
+impl Screen for GameScreen {
+    fn initialize(&mut self, _screen_width: f32, _screen_height: f32, _textures: &HashMap<String, Texture2D>, _fonts: &HashMap<String, Font>) {
     }
 
-    fn update(&mut self) {
-        let data = self.data.as_mut().unwrap();
-
-        if data.rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
+    fn update(&mut self, d: &mut RaylibDrawHandle, textures: &HashMap<String, Texture2D>, fonts: &HashMap<String, Font>) -> bool {
+        if d.is_key_pressed(KeyboardKey::KEY_SPACE) {
             self.paused = !self.paused;
         }
 
-        let mut d = data.rl.begin_drawing(&data.thread);
         d.clear_background(Color::BLACK);
 
         if !self.paused {
@@ -140,11 +134,12 @@ impl<'a> Screen<'a> for GameScreen<'a> {
             }
         }
 
-        self.world.draw((0, 0), &mut d, &data.textures);
+        self.world.draw((0, 0), d, &textures, &fonts);
         self.robot.draw(
             tile_to_screen_pos_centered(self.robot.x, self.robot.y),
-            &mut d,
-            &data.textures,
+            d,
+            textures,
+            fonts,
         );
 
         if self.playback_ended {
@@ -164,13 +159,16 @@ impl<'a> Screen<'a> for GameScreen<'a> {
                 },
             );
         }
+
+        false
     }
 
-    fn should_close(&self) -> bool {
-        self.data.as_ref().unwrap().rl.window_should_close()
-    }
-
-    fn end(self) {
-        println!("Game screen end");
+    fn get_new_screen(&self) -> Box<dyn Screen>
+    {
+        Box::new(GameScreen::new(
+            World::new((0, 0), (1, 1)),
+            Robot::new(0, 0, robot::Direction::Right),
+            "",
+        ))
     }
 }

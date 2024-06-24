@@ -119,7 +119,8 @@ impl Drawable for Robot {
         &self,
         position: (i32, i32),
         d: &mut raylib::prelude::RaylibDrawHandle,
-        textures: &std::collections::HashMap<String, raylib::prelude::Texture2D>,
+        textures: &std::collections::HashMap<String, raylib::texture::Texture2D>,
+        _fonts: &std::collections::HashMap<String, Font>,
     ) {
         d.draw_texture_pro(
             textures.get("rover").unwrap(),

@@ -1,34 +1,14 @@
 use std::collections::HashMap;
 
-use raylib::{texture::Texture2D, RaylibHandle, RaylibThread};
+use raylib::{drawing::RaylibDrawHandle, text::Font, texture::Texture2D};
 
 pub mod editor;
 pub mod game;
 pub mod menu;
 
-pub struct ScreenData<'a> {
-    rl: &'a mut RaylibHandle,
-    thread: &'a RaylibThread,
-    textures: &'a HashMap<String, Texture2D>,
-}
-
-impl<'a> ScreenData<'a> {
-    pub fn new(
-        rl: &'a mut RaylibHandle,
-        thread: &'a RaylibThread,
-        textures: &'a HashMap<String, Texture2D>,
-    ) -> Self {
-        Self {
-            rl,
-            thread,
-            textures,
-        }
-    }
-}
-
-pub trait Screen<'a> {
-    fn initialize(&mut self, data: ScreenData<'a>);
-    fn update(&mut self);
-    fn should_close(&self) -> bool;
-    fn end(self);
+pub trait Screen {
+    fn initialize(&mut self, screen_width: f32, screen_height: f32, textures: &HashMap<String, Texture2D>, fonts: &HashMap<String, Font>);
+    // Returns whether the screen wants to end
+    fn update(&mut self, d: &mut RaylibDrawHandle, textures: &HashMap<String, Texture2D>, fonts: &HashMap<String, raylib::text::Font>) -> bool;
+    fn get_new_screen(&self) -> Box<dyn Screen>;
 }

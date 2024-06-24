@@ -31,6 +31,7 @@ impl Drawable for Tile {
         position: (i32, i32),
         d: &mut RaylibDrawHandle,
         textures: &HashMap<String, Texture2D>,
+        _fonts: &HashMap<String, Font>,
     ) {
         d.draw_texture(
             match self {
@@ -98,12 +99,18 @@ impl World {
 }
 
 impl Drawable for World {
-    fn draw(&self, _position: (i32, i32), d: &mut RaylibDrawHandle, textures: &HashMap<String, Texture2D>) {
+    fn draw(
+        &self,
+        _position: (i32, i32),
+        d: &mut RaylibDrawHandle,
+        textures: &HashMap<String, Texture2D>,
+        fonts: &HashMap<String, Font>,
+    ) {
         for y in 0..self.height {
             for x in 0..self.width {
                 let screen_pos = tile_to_screen_pos(x, y);
 
-                self.get_tile((x, y)).draw(screen_pos, d, textures);
+                self.get_tile((x, y)).draw(screen_pos, d, textures, fonts);
             }
         }
     }

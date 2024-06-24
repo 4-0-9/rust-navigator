@@ -3,7 +3,7 @@ use raylib::prelude::*;
 use crate::rendering::Drawable;
 
 #[derive(Default)]
-pub struct Button<'a> {
+pub struct Button {
     rect: Rectangle,
     text_position: Vector2,
     color: Color,
@@ -11,11 +11,10 @@ pub struct Button<'a> {
     bg_color: Color,
     bg_color_hover: Color,
     font_size: f32,
-    font: Option<&'a Font>,
     pub text: String,
 }
 
-impl<'a> Button<'a> {
+impl Button {
     pub fn new(
         rect: Rectangle,
         text: impl ToString,
@@ -23,7 +22,7 @@ impl<'a> Button<'a> {
         color_hover: Color,
         background_color: Color,
         background_color_hover: Color,
-        font: &'a Font,
+        font: &raylib::text::Font,
         font_size: f32,
     ) -> Self {
         let text = text.to_string();
@@ -42,7 +41,6 @@ impl<'a> Button<'a> {
             font_size,
             text,
             rect,
-            font: Some(font),
             text_position,
         }
     }
@@ -53,13 +51,14 @@ impl<'a> Button<'a> {
     }
 }
 
-impl Drawable for Button<'_> {
+impl Drawable for Button {
     /// * `_position`: This parameter is ignored since a button's position is static
     fn draw(
         &self,
         _position: (i32, i32),
         d: &mut RaylibDrawHandle,
         _textures: &std::collections::HashMap<String, Texture2D>,
+        fonts: &std::collections::HashMap<String, Font>,
     ) {
         let hovered = self.is_hovered(d);
         let (text_color, bg_color) = match hovered {
@@ -69,7 +68,7 @@ impl Drawable for Button<'_> {
 
         d.draw_rectangle_rec(self.rect, bg_color);
         d.draw_text_ex(
-            self.font.unwrap(),
+            fonts.get("geist").unwrap(),
             &self.text,
             self.text_position,
             self.font_size,
