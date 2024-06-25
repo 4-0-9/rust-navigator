@@ -17,6 +17,8 @@ pub enum RobotCommand {
 
 #[derive(Debug)]
 pub enum RobotResponse {
+    Ok,
+    Error,
     Scan(bool),
 }
 
