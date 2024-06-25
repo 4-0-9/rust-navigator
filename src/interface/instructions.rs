@@ -50,7 +50,7 @@ pub fn simulate(
                     RobotResponse::Ok => Ok(()),
                     _ => Err(mlua::Error::RuntimeError("Forward error".to_string())),
                 },
-                Err(_) => Ok(()),
+                Err(_) => Err(mlua::Error::RuntimeError("Forward error".to_string())),
             }
         })?),
     )?;
@@ -131,7 +131,16 @@ pub fn simulate(
                 break;
             }
 
+            let should_break = match response {
+                RobotResponse::Error => true,
+                _ => false,
+            };
+
             tx_out.send(response).unwrap();
+
+            if should_break {
+                break;
+            }
         }
 
         commands
