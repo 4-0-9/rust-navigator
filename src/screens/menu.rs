@@ -72,6 +72,12 @@ impl Screen for MenuScreen {
 
         let robot = Robot::new(1, 5, crate::robot::Direction::Right);
 
+        world.set_tile((5, 5), crate::world::Tile::Wall);
+        world.set_tile((7, 4), crate::world::Tile::Wall);
+        world.set_tile((5, 6), crate::world::Tile::Wall);
+        world.set_tile((6, 7), crate::world::Tile::Wall);
+        world.set_tile((3, 2), crate::world::Tile::Wall);
+
         Box::new(GameScreen::new(world, robot, "./lua/test.lua"))
     }
 }
